@@ -26,7 +26,7 @@ const store = {
 };
 
 const settings = Object.assign({
-  theme: 'cartoon', voice: 'female', voiceName: '', speed: 3,
+  theme: 'cartoon', voice: 'female', voiceName: '', speed: 3, voiceOn: true,
   numPlayers: 10, cardsPerPlayer: 1,
   prizes: { ambo: true, terno: true, quaterna: true, cinquina: true, tombola: true, tombolone: true },
   price: 1, fee: 0, fixedPot: '', roundEuro: false,
@@ -34,7 +34,8 @@ const settings = Object.assign({
 const saveSettings = () => store.set('settings', settings);
 
 let roster = [];                                   // [{name, cards:[n,...]}]
-let known = store.get('players', {});              // nome -> [cartelle preferite]
+let known = (() => { const k = store.get('players', []); return Array.isArray(k) ? k : Object.keys(k || {}); })();   // solo i nomi
+const START_DELAY = 5;   // secondi di attesa dopo AVVIA / RIPRENDI
 
 /* ===================== GENERAZIONE CARTELLE =====================
    Ogni numero di cartella genera SEMPRE gli stessi numeri: cosi' un
@@ -156,7 +157,9 @@ const TTS = {
     return { v, pitch: settings.voice === 'male' ? 0.6 : 1.35 };
   },
   rate() { return settings.speed <= 1 ? 1.45 : settings.speed === 2 ? 1.2 : 1.0; },
+  silent(text) { return new Promise(res => setTimeout(res, Math.min(2500, 600 + text.length * 40))); },
   speak(text, extra = 1) {
+    if (!settings.voiceOn) return this.silent(text);
     const { v, pitch } = this.pick();
     const rate = this.rate() * extra;
     const timeout = new Promise(res => setTimeout(res, 2500 + text.length * 140));
@@ -283,7 +286,6 @@ const totalCards = () => roster.reduce((s, p) => s + p.cards.length, 0);
 function usedSet(exceptIdx = -1) { const s = new Set(); roster.forEach((p, i) => { if (i !== exceptIdx) p.cards.forEach(c => s.add(c)); }); return s; }
 function reservedSet() {             // cartelle preferite di giocatori conosciuti non presenti
   const present = new Set(roster.map(p => p.name.toLowerCase())), r = new Set();
-  Object.entries(known).forEach(([n, cs]) => { if (!present.has(n.toLowerCase())) cs.forEach(c => r.add(c)); });
   return r;
 }
 function freeNumbers(count, used) {
@@ -297,15 +299,16 @@ function freeNumbers(count, used) {
   }
   return res;
 }
-function knownCards(name) {
-  const k = Object.keys(known).find(n => n.toLowerCase() === name.toLowerCase());
-  return k ? known[k] : null;
+function nextGenericName() {
+  let k = 1; const used = new Set(roster.map(p => p.name));
+  while (used.has('Giocatore ' + k)) k++;
+  return 'Giocatore ' + k;
 }
 
 /* ===================== ELENCO GIOCATORI ===================== */
 function addPlayer(name, cardsText, count, silent = false) {
   name = (name || '').trim().replace(/\s+/g, ' ');
-  if (!name) return 'Scrivi il nome del giocatore.';
+  if (!name) name = nextGenericName();
   if (roster.length >= MAX_PLAYERS) return 'Massimo 2000 giocatori.';
   if (roster.some(p => p.name.toLowerCase() === name.toLowerCase())) return `"${name}" è già in elenco.`;
   const used = usedSet();
@@ -342,7 +345,7 @@ function renderRoster() {
   renderPrizeTable();
 }
 function refreshKnownNames() {
-  $('#knownNames').innerHTML = Object.keys(known).sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
+  $('#knownNames').innerHTML = known.slice().sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
 }
 
 /* ========================= PREMI ========================= */
@@ -401,23 +404,23 @@ async function doPdf(list) {
   if (!list.length) throw new Error('Nessuna cartella da stampare.');
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-  const cw = 10, ch = 10, W = cw * 9, H = ch * 3, mx = 10, gapX = 10, top = 10, blockH = H + 13;
-  const perCol = Math.floor((297 - 2 * top) / blockH), perPage = perCol * 2;
+  // 6 cartelle per foglio A4, una sotto l'altra, a tutta pagina
+  const mx = 8, top = 8, W = 210 - 2 * mx, blockH = (297 - 2 * top) / 6, headH = 7, gap = 3;
+  const cw = W / 9, ch = (blockH - headH - gap) / 3, H = ch * 3, perPage = 6;
   list.forEach(({ no, name }, i) => {
     if (i && i % perPage === 0) pdf.addPage();
-    const idx = i % perPage, col = idx % 2, row = Math.floor(idx / 2);
-    const x = mx + col * (W + gapX), y = top + row * blockH;
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(0);
-    pdf.text(String(name || '').slice(0, 34), x, y + 4);
-    pdf.text('Cartella N. ' + no, x + W, y + 4, { align: 'right' });
-    const g = getCard(no), y0 = y + 6;
+    const x = mx, y = top + (i % perPage) * blockH;
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0);
+    pdf.text(String(name || '').slice(0, 45), x, y + 5);
+    pdf.text('Cartella N. ' + no, x + W, y + 5, { align: 'right' });
+    const g = getCard(no), y0 = y + headH;
     for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) {
       const v = g[r][c], cx = x + c * cw, cy = y0 + r * ch;
       if (!v) { pdf.setFillColor(215, 215, 215); pdf.rect(cx, cy, cw, ch, 'F'); }
-      pdf.setLineWidth(0.3); pdf.setDrawColor(0); pdf.rect(cx, cy, cw, ch);
-      if (v) { pdf.setFontSize(16); pdf.text(String(v), cx + cw / 2, cy + ch / 2 + 2.2, { align: 'center' }); }
+      pdf.setLineWidth(0.4); pdf.setDrawColor(0); pdf.rect(cx, cy, cw, ch);
+      if (v) { pdf.setFontSize(28); pdf.text(String(v), cx + cw / 2, cy + ch / 2 + 3.6, { align: 'center' }); }
     }
-    pdf.setLineWidth(0.7); pdf.rect(x, y0, W, H);
+    pdf.setLineWidth(0.9); pdf.rect(x, y0, W, H);
   });
   const fname = 'Cartelle_Bingo_' + new Date().toISOString().slice(0, 10) + '.pdf';
   if (IS_NATIVE && plugin('Filesystem') && plugin('Share')) {
@@ -477,6 +480,7 @@ function setState(s) {
   $('#bPause').disabled = s !== 'running';
   $('#bStop').disabled = !(s === 'running' || s === 'paused' || s === 'win');
   const cur = G.enabled[G.prizeIdx];
+  $('#pfLabel').textContent = 'Si gioca per:';
   $('#playingFor').textContent = s === 'over' ? 'PARTITA FINITA' : cur ? cur.label : '–';
 }
 function renderPrizeStatus() {
@@ -559,25 +563,42 @@ async function showWins(wins) {
 }
 
 function finish(reason) {
-  G.loop++; clearTimeout(G.timer);
+  G.loop++; clearTimeout(G.timer); clearCountdown();
   setState('over'); renderPrizeStatus();
   $('#bResume').disabled = true;
   $('#playingFor').textContent = 'PARTITA FINITA';
   if (reason && !G.awards.length) TTS.speak('Partita finita');
 }
+function countdownThenRun() {
+  setState('running'); const id = ++G.loop;
+  const cur = $('#currentNum'), prev = cur.classList.contains('count') ? G.countPrev : cur.textContent;
+  G.countPrev = prev;
+  let n = START_DELAY;
+  cur.classList.add('count'); $('#pfLabel').textContent = 'Si parte tra'; $('#playingFor').textContent = n + ' secondi';
+  const tick = () => {
+    if (id !== G.loop || G.state !== 'running') { cur.classList.remove('count'); if (cur.textContent !== prev && /^\d$/.test(cur.textContent)) cur.textContent = prev; return; }
+    if (n <= 0) { cur.classList.remove('count'); cur.textContent = prev; setState('running'); step(id); return; }
+    cur.textContent = n; $('#pfLabel').textContent = 'Si parte tra'; $('#playingFor').textContent = n + ' secondi';
+    n--; G.timer = setTimeout(tick, 1000);
+  };
+  tick();
+}
+function clearCountdown() {
+  const cur = $('#currentNum');
+  if (cur.classList.contains('count')) { cur.classList.remove('count'); cur.textContent = G.countPrev || '–'; }
+}
 function start() {
-  audio();
-  setState('running'); G.loop++; step(G.loop);
+  audio(); countdownThenRun();
 }
 function resume() {
   if (!(G.state === 'paused' || G.state === 'win')) return;
   audio();
   $('#winBox').hidden = true; $('#game').classList.remove('has-win'); confettiRun++;
-  setState('running'); G.loop++; step(G.loop);
+  countdownThenRun();
 }
 function pause() {
   if (G.state !== 'running') return;
-  G.loop++; clearTimeout(G.timer); TTS.stop(); setState('paused');
+  G.loop++; clearTimeout(G.timer); TTS.stop(); clearCountdown(); setState('paused');
 }
 function stopGame() {
   if (!confirm('Fermare definitivamente la partita?')) return;
@@ -605,8 +626,8 @@ function startFromSetup() {
   if (tooMany) return msg(m, `${tooMany.name} ha più di 6 cartelle.`, 'err');
   msg(m, '');
   // memorizza nomi e cartelle per le prossime partite
-  roster.forEach(p => { if (!GENERIC_NAME.test(p.name)) { const k = Object.keys(known).find(n => n.toLowerCase() === p.name.toLowerCase()); if (k) delete known[k]; known[p.name] = p.cards.slice(); } });
-  store.set('players', known); store.set('lastRoster', roster); refreshKnownNames();
+  roster.forEach(p => { if (!GENERIC_NAME.test(p.name) && !known.some(n => n.toLowerCase() === p.name.toLowerCase())) known.push(p.name); });
+  store.set('players', known); store.set('lastRoster', roster.filter(p => !GENERIC_NAME.test(p.name)).map(p => p.name)); refreshKnownNames();
   saveSettings();
   setupGame();
   $('#setup').hidden = true; $('#game').hidden = false; window.scrollTo(0, 0);
@@ -618,6 +639,9 @@ function applyTheme() {
   $$('[data-theme]').forEach(b => b.classList.toggle('on', b.dataset.theme === settings.theme));
 }
 function applyVoiceButtons() { $$('[data-voice]').forEach(b => b.classList.toggle('on', b.dataset.voice === settings.voice)); }
+function applyVoiceOn() {
+  $$('.voiceToggle').forEach(b => { b.textContent = settings.voiceOn ? '🔊 Voce ACCESA' : '🔇 Voce SPENTA'; b.classList.toggle('off', !settings.voiceOn); });
+}
 function applySpeed() {
   $('#speed').value = $('#speed2').value = settings.speed;
   $('#speedVal').textContent = $('#speedVal2').textContent = settings.speed;
@@ -628,6 +652,7 @@ function bind() {
   $$('[data-voice]').forEach(b => b.onclick = () => { settings.voice = b.dataset.voice; settings.voiceName = ''; $('#voiceSelect').value = ''; applyVoiceButtons(); TTS.fillSelect(); saveSettings(); });
   $('#voiceSelect').onchange = e => { settings.voiceName = e.target.value; const v = TTS.voices.find(x => x.name === e.target.value); if (v && v.gender) { settings.voice = v.gender; applyVoiceButtons(); } saveSettings(); };
   [$('#speed'), $('#speed2')].forEach(r => r.oninput = e => { settings.speed = +e.target.value; applySpeed(); saveSettings(); });
+  $$('.voiceToggle').forEach(b => b.onclick = () => { settings.voiceOn = !settings.voiceOn; if (!settings.voiceOn) TTS.stop(); applyVoiceOn(); saveSettings(); });
   $('#testVoice').onclick = () => { audio(); TTS.speak('Benvenuti al bingo! Il primo numero è il 90'); };
 
   $('#numPlayers').value = settings.numPlayers; $('#cardsPerPlayer').value = settings.cardsPerPlayer; $('#qCount').value = settings.cardsPerPlayer;
@@ -643,27 +668,26 @@ function bind() {
     renderRoster(); msg($('#qMsg'), `Aggiunti ${added} giocatori. Puoi rinominarli con ✏️.`, 'ok');
   };
   $('#loadLast').onclick = () => {
-    const last = store.get('lastRoster', []);
+    const last = store.get('lastRoster', []).map(x => (typeof x === 'string' ? x : x.name)).filter(Boolean);
     if (!last.length) return msg($('#qMsg'), 'Nessuna partita precedente memorizzata.', 'err');
     if (roster.length && !confirm('Sostituire l\'elenco attuale con i giocatori dell\'ultima partita?')) return;
-    roster = last.map(p => ({ name: p.name, cards: p.cards.slice(0, MAX_CARDS) }));
-    settings.numPlayers = roster.length; $('#numPlayers').value = roster.length; saveSettings();
+    roster = [];
+    last.forEach(n => addPlayer(n, '', settings.cardsPerPlayer, true));
     renderRoster(); msg($('#qMsg'), `Caricati ${roster.length} giocatori dell'ultima partita.`, 'ok');
+  };
+  $('#clearMemory').onclick = () => {
+    if (!confirm('Cancellare tutti i nomi e le cartelle memorizzati?\n(L\'elenco della partita attuale resta.)')) return;
+    known = []; store.set('players', []); store.set('lastRoster', []); refreshKnownNames();
+    msg($('#qMsg'), 'Memoria dei nomi azzerata.', 'ok');
   };
   $('#clearRoster').onclick = () => { if (roster.length && confirm('Svuotare l\'elenco dei giocatori?')) { roster = []; renderRoster(); } };
 
   const qName = $('#qName'), qCards = $('#qCards');
-  qName.oninput = () => {
-    const kc = knownCards(qName.value.trim());
-    if (kc) { qCards.value = kc.join(', '); $('#qCount').value = Math.min(6, kc.length); msg($('#qMsg'), 'Giocatore conosciuto: proposte le sue cartelle preferite (puoi cambiarle).', 'ok'); }
-    else if (qCards.dataset.auto === '1') qCards.value = '';
-    qCards.dataset.auto = kc ? '1' : '';
-  };
   const doAdd = () => {
     const err = addPlayer(qName.value, qCards.value, +$('#qCount').value);
     if (err) { msg($('#qMsg'), err, 'err'); return; }
     msg($('#qMsg'), `✔ ${roster[roster.length - 1].name}: cartelle ${roster[roster.length - 1].cards.join(', ')}`, 'ok');
-    qName.value = ''; qCards.value = ''; qCards.dataset.auto = ''; $('#qCount').value = settings.cardsPerPlayer; qName.focus();
+    qName.value = ''; qCards.value = ''; $('#qCount').value = settings.cardsPerPlayer; qName.focus();
     const wrap = $('.roster-wrap'); wrap.scrollTop = wrap.scrollHeight;
   };
   $('#qAdd').onclick = doAdd;
@@ -674,8 +698,7 @@ function bind() {
     const errs = []; let ok = 0;
     lines.forEach(l => {
       const [name, cards] = l.split(/[;\t]/);
-      const kc = !cards && knownCards((name || '').trim());
-      const err = addPlayer(name, cards || (kc ? kc.join(',') : ''), settings.cardsPerPlayer, true);
+      const err = addPlayer(name, cards || '', settings.cardsPerPlayer, true);
       if (err) errs.push(`${name}: ${err}`); else ok++;
     });
     renderRoster();
@@ -689,7 +712,7 @@ function bind() {
     if (b.dataset.act === 'del') { roster.splice(i, 1); renderRoster(); }
     else if (b.dataset.act === 'edit') {
       roster.splice(i, 1); renderRoster();
-      qName.value = GENERIC_NAME.test(p.name) ? '' : p.name; qCards.value = p.cards.join(', '); qCards.dataset.auto = '';
+      qName.value = GENERIC_NAME.test(p.name) ? '' : p.name; qCards.value = p.cards.join(', ');
       $('#qCount').value = p.cards.length; qName.focus();
       msg($('#qMsg'), `Modifica "${p.name}" e premi Aggiungi (cartelle ${p.cards.join(', ')}).`, 'ok');
       qName.scrollIntoView({ block: 'center' });
@@ -733,7 +756,8 @@ function bind() {
 }
 
 function init() {
-  applyTheme(); applyVoiceButtons(); applySpeed();
+  if (settings.speed > 10) settings.speed = 10;
+  applyTheme(); applyVoiceButtons(); applyVoiceOn(); applySpeed();
   bind(); refreshKnownNames(); renderRoster(); buildBoard();
   TTS.init();
 }

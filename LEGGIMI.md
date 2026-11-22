@@ -28,14 +28,16 @@ L'app usa le voci italiane già presenti nel dispositivo:
 Se manca la voce del tipo scelto, l'app usa un'altra voce italiana cambiandone il tono.
 
 ## 4. Come si gioca
-1. **Voce e velocità** (1-5 secondi tra un numero e l'altro).
-2. **Giocatori**: scrivi il nome e premi INVIO. I giocatori già conosciuti ritrovano le loro cartelle preferite.
+1. **Voce e velocità** (da 1 a 10 secondi tra un numero e l'altro). La voce si può spegnere e riaccendere anche durante la partita.
+2. **Giocatori**: scrivi il nome e premi INVIO (i nomi già usati vengono suggeriti). Il nome si può lasciare vuoto:
+   sulla cartella comparirà "Giocatore" con un numero. Il programma ricorda solo i nomi, non le cartelle;
+   "Azzera memoria nomi" li cancella tutti.
    "Completa elenco" aggiunge giocatori numerati fino al numero scelto (max 2000, max 6 cartelle ciascuno).
    "Giocatori dell'ultima partita" ricarica l'elenco precedente.
 3. **Tipo di gioco**: In crescendo (tutti) oppure solo i premi spuntati.
 4. **Premi**: prezzo per cartella (o montepremi fisso) → ripartizione automatica crescente.
-5. **Stampa** le cartelle (su Android si crea un PDF da stampare o condividere).
-6. **INIZIA PARTITA** → **AVVIA**. Quando c'è una vincita l'estrazione si ferma, la voce dice premio, numero di cartella
+5. **Stampa** le cartelle (6 per foglio A4, a tutta pagina) (su Android si crea un PDF da stampare o condividere).
+6. **INIZIA PARTITA** → **AVVIA**: l'estrazione parte dopo 5 secondi (anche dopo RIPRENDI). Quando c'è una vincita l'estrazione si ferma, la voce dice premio, numero di cartella
    e nome; premi **RIPRENDI** per continuare. Con Tombola e Tombolone parte la musica di festa.
    Tasto **spazio** = pausa/riprendi (su PC).
 
