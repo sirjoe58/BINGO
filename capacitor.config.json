@@ -1,0 +1,8 @@
+{
+  "appId": "it.sirjoe.bingo",
+  "appName": "BINGO",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

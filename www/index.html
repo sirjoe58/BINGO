@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BINGO - Tombola</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-cartoon">
+
+<header id="topbar">
+  <div class="logo"><span class="b">B</span><span class="i">I</span><span class="n">N</span><span class="g">G</span><span class="o">O</span></div>
+  <div class="topbar-right">
+    <span class="lbl">Grafica:</span>
+    <button class="chip" data-theme="cartoon">🎈 Cartoon</button>
+    <button class="chip" data-theme="classic">🎩 Classica</button>
+  </div>
+</header>
+
+<!-- ======================= IMPOSTAZIONI ======================= -->
+<main id="setup">
+
+  <section class="card-box">
+    <h2><span class="num">1</span> Voce e velocità</h2>
+    <div class="row wrap">
+      <div class="field">
+        <label>Voce</label>
+        <div class="seg">
+          <button class="segbtn" data-voice="male">👨 Maschile</button>
+          <button class="segbtn" data-voice="female">👩 Femminile</button>
+        </div>
+      </div>
+      <div class="field grow">
+        <label for="voiceSelect">Voce specifica (facoltativo)</label>
+        <select id="voiceSelect"><option value="">Automatica</option></select>
+      </div>
+      <div class="field grow">
+        <label for="speed">Pausa tra un numero e l'altro: <b id="speedVal">3</b> secondi</label>
+        <input type="range" id="speed" min="1" max="5" step="1" value="3">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="testVoice" class="btn small">🔊 Prova voce</button>
+      </div>
+    </div>
+    <p id="voiceNote" class="note"></p>
+  </section>
+
+  <section class="card-box">
+    <h2><span class="num">2</span> Giocatori e cartelle</h2>
+    <div class="row wrap">
+      <div class="field">
+        <label for="numPlayers">Numero giocatori (1-2000)</label>
+        <input type="number" id="numPlayers" min="1" max="2000" value="10">
+      </div>
+      <div class="field">
+        <label for="cardsPerPlayer">Cartelle per giocatore (max 6)</label>
+        <select id="cardsPerPlayer">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="fillRoster" class="btn small">➕ Completa elenco fino al numero scelto</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="loadLast" class="btn small alt">↩️ Giocatori dell'ultima partita</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="clearRoster" class="btn small danger">🗑️ Svuota elenco</button>
+      </div>
+    </div>
+
+    <h3>Inserimento veloce</h3>
+    <p class="note">Scrivi il nome e premi INVIO. Se il giocatore è già conosciuto, vengono proposte le sue cartelle preferite.
+      Nel campo cartelle puoi scrivere i numeri (es. <b>12, 15, 40-42</b>) oppure lasciarlo vuoto per l'assegnazione automatica.</p>
+    <div class="row wrap quick">
+      <div class="field grow2">
+        <label for="qName">Nome giocatore</label>
+        <input id="qName" list="knownNames" autocomplete="off" placeholder="es. Mario Rossi">
+        <datalist id="knownNames"></datalist>
+      </div>
+      <div class="field">
+        <label for="qCount">N. cartelle</label>
+        <select id="qCount"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      </div>
+      <div class="field grow2">
+        <label for="qCards">Numeri cartella (vuoto = automatico)</label>
+        <input id="qCards" autocomplete="off" placeholder="automatico">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="qAdd" class="btn">✔ Aggiungi</button>
+      </div>
+    </div>
+    <p id="qMsg" class="msg"></p>
+
+    <details class="bulk">
+      <summary>📋 Incolla un elenco di giocatori (uno per riga)</summary>
+      <p class="note">Formato: <b>Nome</b> oppure <b>Nome; 12, 13, 14</b></p>
+      <textarea id="bulkText" rows="5" placeholder="Mario Rossi; 12, 13&#10;Anna Bianchi&#10;Luigi Verdi; 100-102"></textarea>
+      <button id="bulkAdd" class="btn small">Aggiungi elenco</button>
+    </details>
+
+    <div class="roster-head">
+      <b id="rosterCount">0 giocatori - 0 cartelle</b>
+      <input id="rosterFilter" placeholder="🔍 cerca nome o cartella">
+    </div>
+    <div class="roster-wrap">
+      <table id="roster">
+        <thead><tr><th>#</th><th>Giocatore</th><th>Cartelle</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card-box">
+    <h2><span class="num">3</span> Tipo di gioco</h2>
+    <div class="row wrap">
+      <button id="presetAll" class="btn small alt">🎯 In crescendo (tutti i premi)</button>
+    </div>
+    <div id="prizeChecks" class="prize-checks"></div>
+    <p class="note">I premi si estraggono sempre in ordine crescente: Ambo → Terno → Quaterna → Cinquina → Tombola → Tombolone (seconda tombola).</p>
+  </section>
+
+  <section class="card-box">
+    <h2><span class="num">4</span> Premi in denaro</h2>
+    <div class="row wrap">
+      <div class="field">
+        <label for="price">Prezzo per cartella (€)</label>
+        <input type="number" id="price" min="0" step="0.5" value="1">
+      </div>
+      <div class="field">
+        <label for="fee">Trattenuta organizzatore (%)</label>
+        <input type="number" id="fee" min="0" max="100" step="1" value="0">
+      </div>
+      <div class="field">
+        <label for="fixedPot">oppure montepremi fisso (€)</label>
+        <input type="number" id="fixedPot" min="0" step="1" placeholder="vuoto = calcolato">
+      </div>
+      <div class="field">
+        <label><input type="checkbox" id="roundEuro"> Arrotonda all'euro</label>
+      </div>
+    </div>
+    <table class="prize-table" id="prizeTable"></table>
+    <p class="note">Ripartizione automatica crescente: ogni premio vale più del precedente (pesi 1, 2, 3, …). Con più vincitori lo stesso premio si divide in parti uguali.</p>
+  </section>
+
+  <section class="card-box">
+    <h2><span class="num">5</span> Stampa cartelle</h2>
+    <div class="row wrap">
+      <div class="field grow">
+        <label for="printWho">Cosa stampare</label>
+        <select id="printWho"><option value="all">Tutte le cartelle dei giocatori</option></select>
+      </div>
+      <div class="field grow">
+        <label for="printNums">oppure solo questi numeri di cartella</label>
+        <input id="printNums" placeholder="es. 1-6, 25">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="printBtn" class="btn small">🖨️ Stampa</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="pdfBtn" class="btn small alt">📄 Salva PDF</button>
+      </div>
+    </div>
+    <p id="printMsg" class="msg"></p>
+  </section>
+
+  <div class="start-wrap">
+    <p id="startMsg" class="msg"></p>
+    <button id="startGame" class="btn big">▶ INIZIA PARTITA</button>
+  </div>
+</main>
+
+<!-- ======================= PARTITA ======================= -->
+<main id="game" hidden>
+  <aside class="panel left">
+    <div class="current-box">
+      <div class="cap">Numero estratto</div>
+      <div id="currentNum" class="current">–</div>
+      <div id="drawnCount" class="sub">0 / 90</div>
+    </div>
+    <div class="last-box">
+      <div class="cap">Ultimi numeri</div>
+      <div id="lastNums" class="last"></div>
+    </div>
+    <div class="playing-for">Si gioca per: <b id="playingFor">–</b></div>
+    <div class="controls">
+      <button id="bStart" class="btn ctrl go">▶ AVVIA</button>
+      <button id="bResume" class="btn ctrl go">⏯ RIPRENDI</button>
+      <button id="bPause" class="btn ctrl warn">⏸ PAUSA</button>
+      <button id="bStop" class="btn ctrl danger">⏹ STOP</button>
+      <button id="bNew" class="btn ctrl alt">🔄 NUOVA PARTITA</button>
+      <button id="bExit" class="btn ctrl dark">🚪 ESCI</button>
+    </div>
+    <div class="speed-inline">
+      <label for="speed2">Velocità: <b id="speedVal2">3</b> s</label>
+      <input type="range" id="speed2" min="1" max="5" step="1" value="3">
+    </div>
+    <div id="winBox" class="win-box" hidden>
+      <canvas id="confetti"></canvas>
+      <div class="win-content">
+        <div id="winTitle" class="win-title"></div>
+        <div id="winList"></div>
+        <div class="note center">Premi <b>RIPRENDI</b> per continuare</div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="panel board-panel">
+    <div class="board-wrap"><div id="board" class="board"></div></div>
+  </section>
+
+  <aside class="panel right">
+    <div class="cap">Montepremi: <b id="potTotal">0,00 €</b></div>
+    <div id="prizeStatus" class="prize-status"></div>
+    <div class="check-box">
+      <div class="cap">Controlla una cartella</div>
+      <div class="row">
+        <input type="number" id="checkNo" min="1" placeholder="n. cartella">
+        <button id="checkBtn" class="btn small">Mostra</button>
+      </div>
+      <div id="checkOut"></div>
+    </div>
+  </aside>
+</main>
+
+<div id="print-area"></div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
