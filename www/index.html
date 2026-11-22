@@ -36,11 +36,15 @@
       </div>
       <div class="field grow">
         <label for="speed">Pausa tra un numero e l'altro: <b id="speedVal">3</b> secondi</label>
-        <input type="range" id="speed" min="1" max="5" step="1" value="3">
+        <input type="range" id="speed" min="1" max="10" step="1" value="3">
       </div>
       <div class="field">
         <label>&nbsp;</label>
-        <button id="testVoice" class="btn small">🔊 Prova voce</button>
+        <button id="testVoice" class="btn small">🗣️ Prova voce</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn small voiceToggle">🔊 Voce ACCESA</button>
       </div>
     </div>
     <p id="voiceNote" class="note"></p>
@@ -71,15 +75,20 @@
         <label>&nbsp;</label>
         <button id="clearRoster" class="btn small danger">🗑️ Svuota elenco</button>
       </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="clearMemory" class="btn small dark">🧹 Azzera memoria nomi</button>
+      </div>
     </div>
 
     <h3>Inserimento veloce</h3>
-    <p class="note">Scrivi il nome e premi INVIO. Se il giocatore è già conosciuto, vengono proposte le sue cartelle preferite.
+    <p class="note">Scrivi il nome e premi INVIO: i nomi già usati vengono suggeriti mentre scrivi.
+      Se lasci il nome vuoto, sulla cartella comparirà "Giocatore" con un numero.
       Nel campo cartelle puoi scrivere i numeri (es. <b>12, 15, 40-42</b>) oppure lasciarlo vuoto per l'assegnazione automatica.</p>
     <div class="row wrap quick">
       <div class="field grow2">
-        <label for="qName">Nome giocatore</label>
-        <input id="qName" list="knownNames" autocomplete="off" placeholder="es. Mario Rossi">
+        <label for="qName">Nome giocatore (facoltativo)</label>
+        <input id="qName" list="knownNames" autocomplete="off" placeholder="vuoto = Giocatore n.">
         <datalist id="knownNames"></datalist>
       </div>
       <div class="field">
@@ -189,7 +198,7 @@
       <div class="cap">Ultimi numeri</div>
       <div id="lastNums" class="last"></div>
     </div>
-    <div class="playing-for">Si gioca per: <b id="playingFor">–</b></div>
+    <div class="playing-for"><span id="pfLabel">Si gioca per:</span> <b id="playingFor">–</b></div>
     <div class="controls">
       <button id="bStart" class="btn ctrl go">▶ AVVIA</button>
       <button id="bResume" class="btn ctrl go">⏯ RIPRENDI</button>
@@ -198,9 +207,10 @@
       <button id="bNew" class="btn ctrl alt">🔄 NUOVA PARTITA</button>
       <button id="bExit" class="btn ctrl dark">🚪 ESCI</button>
     </div>
+    <button class="btn ctrl voiceToggle">🔊 Voce ACCESA</button>
     <div class="speed-inline">
       <label for="speed2">Velocità: <b id="speedVal2">3</b> s</label>
-      <input type="range" id="speed2" min="1" max="5" step="1" value="3">
+      <input type="range" id="speed2" min="1" max="10" step="1" value="3">
     </div>
     <div id="winBox" class="win-box" hidden>
       <canvas id="confetti"></canvas>

@@ -190,14 +190,16 @@ body.theme-cartoon .cell{border-radius:50%}
 /* ================= STAMPA ================= */
 #print-area{display:none}
 @media print{
-  @page{size:A4 portrait;margin:10mm}
+  @page{size:A4 portrait;margin:8mm}
   body{background:#fff!important}
   body>*:not(#print-area){display:none!important}
   #print-area{display:block!important}
-  .pcard{width:92mm;display:inline-block;margin:0 3mm 5mm 0;break-inside:avoid;page-break-inside:avoid;vertical-align:top;font-family:Arial,Helvetica,sans-serif}
-  .pcard .ph{display:flex;justify-content:space-between;font-size:10pt;font-weight:bold;margin-bottom:1mm}
+  .pcard{width:194mm;height:46.8mm;display:block;margin:0;padding-bottom:3mm;break-inside:avoid;page-break-inside:avoid;font-family:Arial,Helvetica,sans-serif}
+  .pcard:nth-child(6n){break-after:page;page-break-after:always}
+  .pcard:last-child{break-after:auto;page-break-after:auto}
+  .pcard .ph{display:flex;justify-content:space-between;font-size:13pt;font-weight:bold;height:6mm;line-height:6mm}
   .pcard table{border-collapse:collapse;width:100%;table-layout:fixed;border:0.6mm solid #000}
-  .pcard td{border:0.3mm solid #000;height:10mm;text-align:center;font-size:16pt;font-weight:bold;color:#000}
+  .pcard td{border:0.4mm solid #000;height:12.4mm;padding:0;text-align:center;font-size:26pt;font-weight:bold;color:#000}
   .pcard td.e{background:#ddd!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 
@@ -211,3 +213,10 @@ body.theme-cartoon .cell{border-radius:50%}
 }
 .win-title{font-size:1.5rem}
 .more{font-style:italic}
+
+/* conto alla rovescia e voce spenta */
+.current.count{color:var(--accent2);animation:pop .5s ease}
+.btn.voiceToggle{background:var(--go)}
+.btn.voiceToggle.off{background:#94a3b8}
+#game .btn.voiceToggle{width:100%}
+@media (max-width:1000px){ .left .voiceToggle{grid-column:1/-1} }
